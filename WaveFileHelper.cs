@@ -105,18 +105,18 @@ namespace SplitWavFile
         public static async Task SplitWaveFileBySecondsAsync(string file, int seconds, string savePath, string afterSplitName)
         {
             var waveHeads = await GetWaveHeaders(file);
-            var blockSize = waveHeads.BytePerSecond * seconds;
-            await SplitWaveAsyncBySize(file, waveHeads, blockSize, savePath, afterSplitName);
+            var splitFileSize = waveHeads.BytePerSecond * seconds;
+            await SplitWaveAsyncBySize(file, waveHeads, splitFileSize, savePath, afterSplitName);
             return;
         }
 
         private static async Task SplitWaveAsyncBySize(string file, WaveHeader heads, Int32 maxSize, string savePath, string afterSplitName)
         {
-            const int standard_block_size = 512;
             if (maxSize >= heads.RecordDataWithHeaderLength)
                 File.Copy(file, string.Format("{0}/{1}.wav",savePath,afterSplitName));
             else
             {
+                int standard_block_size = 512;
                 var total =Math.Ceiling((double)heads.RecordDataWithHeaderLength / (double)maxSize);
                 using (var fs = File.Open(file, FileMode.Open))
                 {
@@ -129,19 +129,19 @@ namespace SplitWavFile
                         var newfileHead = heads.Clone() as WaveHeader;
                         newfileHead.RecordDataWithHeaderLength = 0;
                         //设定的分割文件最大长度，读取文件数据的长度
-                        int clone_maxSize = maxSize, len = 0;
+                        int maxSize_copy = maxSize, len = 0;
                         using (var newFs = File.Open(string.Format("{0}/{1}{2}.wav", savePath, afterSplitName, i), FileMode.Create))
                         {
                             do
                             {
-                                //获取读取数据库的大小
+                                //获取读取数据块的大小
                                 len = await fs.ReadAsync(buf, 0, standard_block_size);
                                 //控制文件大小在指定的最大长度左右
-                                clone_maxSize -= len;
+                                maxSize_copy -= len;
                                 //累计分割文件的实际大小
                                 newfileHead.RecordDataWithHeaderLength += buf.Length;
                                 await newFs.WriteAsync(buf);
-                            } while (len > 0 && clone_maxSize > 0);
+                            } while (len > 0 && maxSize_copy > 0);
                             newfileHead.DataLength = newfileHead.RecordDataWithHeaderLength + 44 - 8;
                             await WriteWaveHeads(newFs, newfileHead);
                             await newFs.FlushAsync();

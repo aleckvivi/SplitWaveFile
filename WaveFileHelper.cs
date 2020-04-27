@@ -102,26 +102,32 @@ namespace SplitWavFile
         /// <param name="seconds"></param>
         /// <param name="afterSplitName"></param>
         /// <returns></returns>
-        public static async Task SplitWaveFileBySecondsAsync(string file, int seconds, string savePath, string afterSplitName)
+        public static async Task<IList<string>> SplitWaveFileBySecondsAsync(string file, int seconds, string savePath, string afterSplitName)
         {
             var waveHeads = await GetWaveHeaders(file);
             var splitFileSize = waveHeads.BytePerSecond * seconds;
-            await SplitWaveAsyncBySize(file, waveHeads, splitFileSize, savePath, afterSplitName);
-            return;
+            return await SplitWaveAsyncBySize(file, waveHeads, splitFileSize, savePath, afterSplitName);
+            
         }
 
-        private static async Task SplitWaveAsyncBySize(string file, WaveHeader heads, Int32 maxSize, string savePath, string afterSplitName)
+        private static async Task<IList<string>> SplitWaveAsyncBySize(string file, WaveHeader heads, Int32 maxSize, string savePath, string afterSplitName)
         {
+            IList<string> result = new List<string>();
             if (maxSize >= heads.RecordDataWithHeaderLength)
-                File.Copy(file, string.Format("{0}/{1}.wav",savePath,afterSplitName));
+            {
+                var saveFile = string.Format(@"{0}\{1}.wav", savePath, afterSplitName);
+                File.Copy(file, saveFile);
+                result.Add(saveFile);
+                return result;
+            }
             else
             {
                 int standard_block_size = 512;
-                var total =Math.Ceiling((double)heads.RecordDataWithHeaderLength / (double)maxSize);
+                var total = Math.Ceiling((double)heads.RecordDataWithHeaderLength / (double)maxSize);
                 using (var fs = File.Open(file, FileMode.Open))
                 {
                     fs.Seek(Wave_Header_Length, SeekOrigin.Begin);
-                    
+
                     byte[] buf = new byte[standard_block_size];
 
                     for (var i = 0; i < total; i++)
@@ -130,7 +136,8 @@ namespace SplitWavFile
                         newfileHead.RecordDataWithHeaderLength = 0;
                         //设定的分割文件最大长度，读取文件数据的长度
                         int maxSize_copy = maxSize, len = 0;
-                        using (var newFs = File.Open(string.Format("{0}/{1}{2}.wav", savePath, afterSplitName, i), FileMode.Create))
+                        var saveFile = string.Format(@"{0}\{1}{2}.wav", savePath, afterSplitName, i);
+                        using (var newFs = File.Open(saveFile, FileMode.Create))
                         {
                             do
                             {
@@ -146,8 +153,10 @@ namespace SplitWavFile
                             await WriteWaveHeads(newFs, newfileHead);
                             await newFs.FlushAsync();
                         }
+                        result.Add(saveFile);
                     }
                 }
+                return result;
             }
         }
 
@@ -158,11 +167,10 @@ namespace SplitWavFile
         /// <param name="maxSize"></param>
         /// <param name="afterSplitName"></param>
         /// <returns></returns>
-        public static async Task SplitWaveAsyncBySize(string file, Int32 maxSize, string savePath, string afterSplitName)
+        public static async Task<IList<string>> SplitWaveAsyncBySize(string file, Int32 maxSize, string savePath, string afterSplitName)
         {
             var waveHeads = await GetWaveHeaders(file);
-            await SplitWaveAsyncBySize(file, waveHeads, maxSize, savePath, afterSplitName);
-            return;
+            return await SplitWaveAsyncBySize(file, waveHeads, maxSize, savePath, afterSplitName);
         }
 
         private static async Task WriteWaveHeads(FileStream fs, WaveHeader heads)

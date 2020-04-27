@@ -24,7 +24,7 @@ namespace SplitWavFile
 
             /*测试分割Wave文件*/
             var file = @"f:\suite-espanola-op-47-leyenda.wav";
-            await WaveFileHelper.SplitWaveFileBySecondsAsync(file, 50, @"F:\Temp", "new_file_");
+            var t=await WaveFileHelper.SplitWaveFileBySecondsAsync(file, 50, @"F:\Temp", "new_file_");
 
 
             Console.Read();

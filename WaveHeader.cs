@@ -46,4 +46,16 @@ namespace SplitWavFile
             return this.MemberwiseClone();
         }
     }
+    public class AmplitudeWithTime
+    {
+        public Int16 Amplitude { get; set; }
+        public double TimeStamp { get; set; }
+    }
+
+    public class SilenceTime
+    {
+        public double Start { get; set; }
+        public double End { get; set; }
+        public double Duration { get; set; }
+    }
 }

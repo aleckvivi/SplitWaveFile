@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection.Metadata;
 using System.Text;
 
 namespace SplitWavFile
@@ -46,6 +47,9 @@ namespace SplitWavFile
             return this.MemberwiseClone();
         }
     }
+    /// <summary>
+    /// 用于描述某个时间点的振幅
+    /// </summary>
     public class AmplitudeWithTime
     {
         public Int16 Amplitude { get; set; }
@@ -57,5 +61,26 @@ namespace SplitWavFile
         public double Start { get; set; }
         public double End { get; set; }
         public double Duration { get; set; }
+    }
+
+
+    public class TemplateFile
+    {
+        //模板文件路径
+        public string File { get; set; }
+        //模板文件所有的插入点位置。以秒为单位。
+        public double[] InsertTimePoints { get; set; }
+        //根据插入时间点换算出来的数据插入位置
+        public long[] InsertPositions { get; set; }
+    }
+    public class AppendWaveData
+    {
+        //模板文件
+        public TemplateFile T_File { get; set; }
+
+        //所有待插入
+        public IList<string> WaveFiles { get; set; }
+        public byte[] Data { get; set; }
+        public int Length { get; set; }
     }
 }

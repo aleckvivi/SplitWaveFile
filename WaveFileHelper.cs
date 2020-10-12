@@ -10,6 +10,7 @@ namespace SplitWavFile
     public class WaveFileHelper
     {
         const int Wave_Header_Length = 44;
+        //每4个字节为一个wave 头的数据块
         const int Wave_Header_Block_Length = 4;
         const int Wave_Header_Sub_Block_Length = 2;
         //静默振幅的阈值
@@ -18,7 +19,7 @@ namespace SplitWavFile
         const int SILENCE_MINI_DURATION = 500;
 
 
-        public static async Task<WaveHeader> GetWaveHeaders(string filePath)
+        public static async Task<WaveHeader> GetWaveHeaders(string filePath,short channel=1, int sampleRate=8000, short bitPerSample =16)
         {
             using (var fs = File.Open(filePath, FileMode.Open))
             {
@@ -26,7 +27,7 @@ namespace SplitWavFile
             }
         }
 
-        public static async Task<WaveHeader> GetWaveHeaders(Stream fs)
+        public static async Task<WaveHeader> GetWaveHeaders(Stream fs, short channel = 1, int sampleRate = 8000, short bitPerSample = 16)
         {
             byte[] buf;
             byte[] buf1;
@@ -56,10 +57,12 @@ namespace SplitWavFile
                         break;
                     case 3:
                         result.Fmt = Encoding.ASCII.GetString(buf);
+                        if (result.Fmt != "fmt ") result.Fmt = "fmt ";
                         Console.WriteLine("固定字符：{0}", result.Fmt);
                         break;
                     case 4:
                         result.Size1 = BitConverter.ToInt32(buf);
+                        if (result.Size1 != 16) result.Size1 = 16;
                         Console.WriteLine("Size1：{0}", result.Size1);
                         break;
                     case 5:
@@ -67,14 +70,18 @@ namespace SplitWavFile
                         buf1[0] = buf[0];
                         buf1[1] = buf[1];
                         result.FormatTag = BitConverter.ToInt16(buf1);
+                        if (result.FormatTag != 1) result.FormatTag = 1;
                         Console.WriteLine("format tag：{0}", result.FormatTag);
                         buf1[0] = buf[2];
                         buf1[1] = buf[3];
                         result.Channel = BitConverter.ToInt16(buf1);
+                        if (result.Channel == 0) result.Channel = channel;
+                        
                         Console.WriteLine("通道数为：{0}", result.Channel);
                         break;
                     case 6:
                         result.SampelRate = BitConverter.ToInt32(buf);
+                        if (result.SampelRate == 0) result.SampelRate = sampleRate;
                         Console.WriteLine("采样率为：{0}", result.SampelRate);
                         break;
                     case 7:
@@ -86,23 +93,29 @@ namespace SplitWavFile
                         buf1[0] = buf[0];
                         buf1[1] = buf[1];
                         result.BlockSize = BitConverter.ToInt16(buf1);
+                        //if (result.BlockSize != 2) result.BlockSize = 2;
                         Console.WriteLine("blockAlign：{0}", result.BlockSize);
                         buf1[0] = buf[2];
                         buf1[1] = buf[3];
                         result.BitPerSamples = BitConverter.ToInt16(buf1);
+                        if (result.BitPerSamples == 0) result.BitPerSamples = bitPerSample;
                         Console.WriteLine("bitPerSample：{0}", result.BitPerSamples);
                         break;
                     case 9:
                         result.Data = Encoding.ASCII.GetString(buf);
+                        if (result.Data != "data") result.Data = "data";
                         Console.WriteLine("固定字符：{0}", result.Data);
                         break;
                     case 10:
                         result.RecordDataWithHeaderLength = BitConverter.ToInt32(buf);
+                        if (result.RecordDataWithHeaderLength == 0) result.RecordDataWithHeaderLength = result.DataLength - 32;
                         Console.WriteLine("录音数据的长度，不包括头部长度：{0}", result.RecordDataWithHeaderLength);
                         break;
 
                 }
             }
+            if (result.BytePerSecond == 0) result.BytePerSecond = result.SampelRate * result.BitPerSamples * result.Channel / 8;
+            if (result.BlockSize == 0) result.BlockSize =(short)( result.Channel * result.BitPerSamples / 8);
             return result;
         }
 

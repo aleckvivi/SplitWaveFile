@@ -20,9 +20,9 @@ namespace SplitWavFile
             /*测试读取文件头*/
             var file = @"c:\t.wav";
             //var file = @"c:\13916803684_5543597c-9d87-47a0-9f98-90b3ff0f9a95_5.wav";
-            //var r = await WaveFileHelper.GetWaveHeaders(file);
+            var r = await WaveFileHelper.GetWaveHeaders(file);
 
-
+            var len = WaveFileHelper.CalculateWaveTotalSeconds(r);
             /*测试分割Wave文件*/
             //var file = @"f:\suite-espanola-op-47-leyenda.wav";
             var t=await WaveFileHelper.SplitWaveFileBySecondsAsync(file, 50, @"c:\Tmp", "new_file_");

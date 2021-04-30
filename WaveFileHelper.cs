@@ -107,9 +107,9 @@ namespace SplitWavFile
                         Console.WriteLine("固定字符：{0}", result.Data);
                         break;
                     case 10:
-                        result.RecordDataWithHeaderLength = BitConverter.ToInt32(buf);
-                        if (result.RecordDataWithHeaderLength == 0) result.RecordDataWithHeaderLength = result.DataLength - 32;
-                        Console.WriteLine("录音数据的长度，不包括头部长度：{0}", result.RecordDataWithHeaderLength);
+                        result.RecordDataWithoutHeaderLength = BitConverter.ToInt32(buf);
+                        if (result.RecordDataWithoutHeaderLength == 0) result.RecordDataWithoutHeaderLength = result.DataLength - 32;
+                        Console.WriteLine("录音数据的长度，不包括头部长度：{0}", result.RecordDataWithoutHeaderLength);
                         break;
 
                 }
@@ -138,7 +138,7 @@ namespace SplitWavFile
         private static async Task<IList<string>> SplitWaveAsyncBySize(string file, WaveHeader heads, Int32 maxSize, string savePath, string afterSplitName)
         {
             IList<string> result = new List<string>();
-            if (maxSize >= heads.RecordDataWithHeaderLength)
+            if (maxSize >= heads.RecordDataWithoutHeaderLength)
             {
                 var saveFile = string.Format(@"{0}\{1}.wav", savePath, afterSplitName);
                 File.Copy(file, saveFile);
@@ -148,7 +148,7 @@ namespace SplitWavFile
             else
             {
                 int standard_block_size = 512;
-                var total = Math.Ceiling((double)heads.RecordDataWithHeaderLength / (double)maxSize);
+                var total = Math.Ceiling((double)heads.RecordDataWithoutHeaderLength / (double)maxSize);
                 using (var fs = File.Open(file, FileMode.Open))
                 {
                     fs.Seek(Wave_Header_Length, SeekOrigin.Begin);
@@ -158,7 +158,7 @@ namespace SplitWavFile
                     for (var i = 0; i < total; i++)
                     {
                         var newfileHead = heads.Clone() as WaveHeader;
-                        newfileHead.RecordDataWithHeaderLength = 0;
+                        newfileHead.RecordDataWithoutHeaderLength = 0;
                         //设定的分割文件最大长度，读取文件数据的长度
                         int maxSize_copy = maxSize, len = 0;
                         var saveFile = string.Format(@"{0}\{1}{2}.wav", savePath, afterSplitName, i);
@@ -171,10 +171,10 @@ namespace SplitWavFile
                                 //控制文件大小在指定的最大长度左右
                                 maxSize_copy -= len;
                                 //累计分割文件的实际大小
-                                newfileHead.RecordDataWithHeaderLength += buf.Length;
+                                newfileHead.RecordDataWithoutHeaderLength += buf.Length;
                                 await newFs.WriteAsync(buf);
                             } while (len > 0 && maxSize_copy > 0);
-                            newfileHead.DataLength = newfileHead.RecordDataWithHeaderLength + 44 - 8;
+                            newfileHead.DataLength = newfileHead.RecordDataWithoutHeaderLength + 44 - 8;
                             await WriteWaveHeads(newFs, newfileHead);
                             await newFs.FlushAsync();
                         }
@@ -386,7 +386,7 @@ namespace SplitWavFile
             await fs.WriteAsync(buf);
 
             buf = new byte[Wave_Header_Block_Length];
-            BitConverter.GetBytes(heads.RecordDataWithHeaderLength).CopyTo(buf, 0);
+            BitConverter.GetBytes(heads.RecordDataWithoutHeaderLength).CopyTo(buf, 0);
             await fs.WriteAsync(buf);
 
             return;
@@ -399,7 +399,7 @@ namespace SplitWavFile
         /// <returns></returns>
         public static int CalculateWaveTotalSeconds(WaveHeader heads)
         {
-            var seconds = heads.RecordDataWithHeaderLength / heads.BytePerSecond;
+            var seconds = heads.RecordDataWithoutHeaderLength / heads.BytePerSecond;
             return seconds;
         }
 
